@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en" class="darkScroll select-none">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blobmaster</title>
+    <!-- Google Fonts integration -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <!-- Tailwind CSS Play CDN for zero-configuration, native local running and drag-and-drop support -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Plus Jakarta Sans", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+              display: ["Space Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+            }
+          }
+        }
+      }
+    </script>
+    <!-- Global Style Sheet referencing our custom theme imports -->
+    <link rel="stylesheet" href="src/style.css" />
+  </head>
+  <body class="min-h-screen bg-[#0F172A] text-slate-200 font-sans flex flex-col overflow-x-hidden antialiased select-none">
+    
+    <!-- Sleek Professional HEADER BAR -->
+    <header class="border-b border-slate-705 bg-[#1E293B] px-6 h-16 flex items-center justify-between shadow-md shrink-0 z-40">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <div class="w-3.5 h-3.5 bg-white rounded-full opacity-90 blur-[0.2px] animate-pulse"></div>
+        </div>
+        <div>
+          <h1 class="font-display font-extrabold text-lg tracking-tight text-white flex items-center gap-1.5 leading-none">
+            BLOB<span class="text-indigo-400">MASTER</span>
+            <span class="px-2 py-0.5 rounded border border-slate-650 text-[9px] text-slate-400 font-mono tracking-wider font-semibold">v3.0.0-PRO</span>
+          </h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button
+          id="control-btn-shuffle-header"
+          title="Randomize Positions, Shapes & Colors"
+          class="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 active:scale-95 transition-all text-slate-200 hover:text-white rounded-md text-sm font-semibold border border-slate-650 cursor-pointer"
+        >
+          <span>Randomize</span>
+        </button>
+        
+        <button
+          onclick="document.getElementById('developer-export-anchor').scrollIntoView({ behavior: 'smooth' });"
+          class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all rounded-md text-sm font-bold text-white shadow-lg shadow-indigo-500/20 cursor-pointer"
+        >
+          <span>Export Assets</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Studio Shell Workspace -->
+    <main class="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+      
+      <!-- COLUMN 1: Live Interactive Preview Window (lg:col-span-7) -->
+      <section class="lg:col-span-7 flex flex-col bg-[#0B1120] border border-slate-700 rounded-2xl overflow-hidden min-h-[520px] shadow-2xl relative">
+        
+        <!-- Preview Header metadata status line -->
+        <div class="border-b border-slate-700 bg-[#1E293B]/60 px-5 py-3.5 flex items-center justify-between select-none shrink-0 z-10">
+          <div class="flex items-center gap-2.5">
+            <!-- Interactivity Icon inline -->
+            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polygon points="12 2 2 22 22 22" />
+            </svg>
+            <span class="font-display font-bold text-xs text-slate-200 uppercase tracking-widest">Interactive Preview environment</span>
+          </div>
+          
+          <!-- Legend indicators -->
+          <div class="flex items-center gap-3 text-[10.5px] text-slate-400 font-semibold">
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 border border-white/20"></span> Move (Drag)
+            </span>
+            <span class="flex items-center gap-1.5 border-l border-slate-700 pl-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white/20"></span> Active: <span id="canvas-active-blob-count">4 Blobs</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Render viewport stage -->
+        <div class="flex-1 bg-black/40 relative flex items-center justify-center p-4">
+          
+          <!-- Viewport canvas boundary box (aspect fluid controlled natively with JavaScript) -->
+          <div id="canvas-viewport" class="w-full h-full absolute inset-0 overflow-hidden transition-all duration-300">
+            
+            <!-- Blobs blur filter background rendering pipeline target -->
+            <div id="canvas-filters-layer" class="absolute inset-0 w-full h-full"></div>
+
+            <!-- SVG Noise Grains layer -->
+            <div id="canvas-noise-overlay" class="absolute inset-0 pointer-events-none mix-blend-overlay opacity-80 custom-noise-grain"></div>
+
+            <!-- Draggable control anchor points layer handler circles overlay -->
+            <div id="canvas-handles-overlay" class="absolute inset-0 w-full h-full pointer-events-auto"></div>
+
+            <!-- Overlaid mockup device layout containing glassmorphic metrics -->
+            <div id="canvas-glass-card-element" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 p-6 shadow-2xl transition-all duration-300 select-none z-10" style="display: none;"></div>
+
+          </div>
+
+          <!-- Bottom Floating Tools & Speed, Reset controllers -->
+          <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-35">
+            <div class="px-3.5 py-1.5 bg-slate-900/90 backdrop-blur-md rounded-full text-[10px] text-slate-350 font-mono border border-white/10 uppercase tracking-wider shadow-lg flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> FPS: 60
+            </div>
+            <button 
+              id="control-btn-reset-overlay"
+              class="px-3.5 py-1.5 bg-[#1E293B]/90 hover:bg-slate-800 backdrop-blur-md rounded-full text-[10px] text-indigo-300 hover:text-white font-mono border border-slate-700 uppercase tracking-wider shadow-lg cursor-pointer transition-all"
+            >
+              Reset template
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- COLUMN 2: Configuration Controls Panel (lg:col-span-5) -->
+      <section class="lg:col-span-5 flex flex-col gap-6 min-h-0">
+        
+        <!-- Controls panel master content card -->
+        <div class="bg-[#1E293B] border border-slate-700 rounded-2xl p-5 shadow-2xl flex flex-col min-h-[500px]">
+          
+          <!-- Category Selector grid tabs row -->
+          <div class="grid grid-cols-4 gap-1.5 p-1 bg-[#0B1120]/85 rounded-xl mb-6 border border-slate-700 shrink-0">
+            <!-- Tab 1: Palettes -->
+            <button
+              id="btn-tab-palettes"
+              class="flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-[10.5px] font-bold tracking-wider transition-all cursor-pointer bg-[#1E293B] text-indigo-400 font-extrabold shadow-sm border border-slate-700"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/><path d="M12 12V7M12 12V17M12 12H7M12 12H17"/></svg>
+              <span>Palettes</span>
+            </button>
+            <!-- Tab 2: Blobs -->
+            <button
+              id="btn-tab-blobs"
+              class="flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-[10.5px] font-bold tracking-wider transition-all cursor-pointer text-slate-400 hover:text-slate-200"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5c0 4 5 13 5 13s5-9 5-13a5 5 0 0 0-5-5z"/></svg>
+              <span>Blobs</span>
+            </button>
+            <!-- Tab 3: Canvas Setup -->
+            <button
+              id="btn-tab-canvas"
+              class="flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-[10.5px] font-bold tracking-wider transition-all cursor-pointer text-slate-400 hover:text-slate-200"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              <span>Canvas</span>
+            </button>
+            <!-- Tab 4: Glassmorphic Overlay -->
+            <button
+              id="btn-tab-glass"
+              class="flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-[10.5px] font-bold tracking-wider transition-all cursor-pointer text-slate-400 hover:text-slate-200"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm1 17.93V15h-2v4.93A8.001 8.001 0 0 1 4.07 13H9v-2H4.07A8.001 8.001 0 0 1 11 4.07V9h2V4.07A8.001 8.001 0 0 1 19.93 11H15v2h4.93A8.001 8.001 0 0 1 13 19.93z"/></svg>
+              <span>Glass card</span>
+            </button>
+          </div>
+
+          <!-- Quick Actions Panel bar -->
+          <div class="flex items-center justify-between bg-[#0B1120]/40 p-2 rounded-lg border border-slate-700 mb-5 text-[11px] font-bold shrink-0">
+            <span class="text-slate-400 uppercase tracking-widest pl-1">blobmaster Studio</span>
+            <div class="flex items-center gap-1.5">
+              <!-- Play/Pause state controller -->
+              <button
+                id="control-btn-play"
+                title="Pause Animations"
+                class="p-1.5 rounded-md border cursor-pointer transition-all bg-indigo-500/15 text-indigo-400 border-indigo-500/20"
+              ></button>
+              <!-- Shuffle parameters -->
+              <button
+                id="control-btn-shuffle"
+                title="Randomize Positions & Sizes"
+                class="p-1.5 rounded-md bg-[#1E293B] border border-slate-705 text-slate-300 hover:text-slate-100 cursor-pointer hover:border-slate-550 transition-all"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
+              </button>
+              <!-- Refresh defaults -->
+              <button
+                id="control-btn-refresh"
+                title="Reset Workspace"
+                class="p-1.5 rounded-md bg-[#1E293B] border border-slate-705 text-slate-300 hover:text-slate-100 cursor-pointer hover:border-slate-550 transition-all"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic panels target viewport container -->
+          <div class="flex-1 overflow-y-auto pr-1">
+
+            <!-- Panel 1: Presets Catalog theme list -->
+            <div id="view-palettes" class="space-y-4" style="display: block;">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-[11px] font-sans font-black tracking-widest text-[#94A3B8] uppercase">Studio Theme Catalog</h4>
+                <span class="text-[10px] text-slate-400">7 Pre-authored Suites</span>
+              </div>
+              <div id="preset-palette-grid" class="grid grid-cols-1 gap-3"></div>
+            </div>
+
+            <!-- Panel 2: Blobs Manager custom config -->
+            <div id="view-blobs" class="space-y-5" style="display: none;">
+              
+              <!-- Setup Add & Blob Select dropdown -->
+              <div class="flex items-center gap-3">
+                <button
+                  id="btn-add-blob"
+                  class="flex-1 py-2 bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600/20 border border-indigo-500/20 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                  <span>Spawn New Blob</span>
+                </button>
+                <button
+                  id="btn-delete-blob"
+                  class="w-12 h-8 flex items-center justify-center bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800 text-rose-300 rounded-lg transition-all cursor-pointer"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6" /><path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                </button>
+              </div>
+
+              <!-- Selector wrapper -->
+              <div class="space-y-1.5">
+                <label class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Select Blob Target</label>
+                <select 
+                  id="blob-current-selector" 
+                  class="w-full bg-[#0B1120] border border-slate-700 h-9 rounded-lg px-3 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                ></select>
+              </div>
+
+              <!-- Metrics Sliders list -->
+              <div class="space-y-4 border-t border-slate-700 pt-4">
+                
+                <!-- Size Slider -->
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Blob Diameter</span>
+                    <span id="lbl-blob-size" class="font-mono text-xs text-indigo-400 font-bold">50%</span>
+                  </div>
+                  <input id="blob-size-slider" type="range" min="10" max="120" value="50" class="w-full accent-indigo-500 cursor-pointer" />
+                </div>
+
+                <!-- Color Selection Hex input -->
+                <div class="space-y-1.5">
+                  <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Blob Base Color</span>
+                  <div class="flex items-center gap-2">
+                    <input id="blob-color-input" type="color" class="w-10 h-8 rounded bg-[#0B1120] border border-slate-700 p-0.5 cursor-pointer" />
+                    <span class="text-[11px] font-mono font-bold text-slate-350 opacity-80">Sync directly with visual pick palette</span>
+                  </div>
+                </div>
+
+                <!-- Sliders for positioning x,y -->
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="space-y-1.5">
+                    <div class="flex justify-between items-center">
+                      <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Position X</span>
+                      <span id="lbl-blob-x" class="font-mono text-xs text-indigo-400 font-semibold">30%</span>
+                    </div>
+                    <input id="blob-x-slider" type="range" min="0" max="100" value="30" class="w-full accent-indigo-500 cursor-pointer" />
+                  </div>
+                  
+                  <div class="space-y-1.5">
+                    <div class="flex justify-between items-center">
+                      <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Position Y</span>
+                      <span id="lbl-blob-y" class="font-mono text-xs text-indigo-400 font-semibold">40%</span>
+                    </div>
+                    <input id="blob-y-slider" type="range" min="0" max="100" value="40" class="w-full accent-indigo-500 cursor-pointer" />
+                  </div>
+                </div>
+
+                <!-- Timing characteristics speed & delay -->
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="space-y-1.5">
+                    <div class="flex justify-between items-center">
+                      <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Float speed</span>
+                      <span id="lbl-blob-duration" class="font-mono text-xs text-indigo-400 font-semibold">16s</span>
+                    </div>
+                    <input id="blob-duration-slider" type="range" min="4" max="80" value="16" class="w-full accent-indigo-500 cursor-pointer" />
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <div class="flex justify-between items-center">
+                      <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Delay start</span>
+                      <span id="lbl-blob-delay" class="font-mono text-xs text-indigo-400 font-semibold">0s</span>
+                    </div>
+                    <input id="blob-delay-slider" type="range" min="0" max="12" step="0.2" value="0" class="w-full accent-indigo-500 cursor-pointer" />
+                  </div>
+                </div>
+
+                <!-- Opacity control -->
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Initial Opacity</span>
+                    <span id="lbl-blob-opacity" class="font-mono text-xs text-indigo-400 font-bold">85%</span>
+                  </div>
+                  <input id="blob-opacity-slider" type="range" min="10" max="100" value="85" class="w-full accent-indigo-500 cursor-pointer" />
+                </div>
+
+                <!-- Movement motion selectors -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Travel profile</label>
+                  <select 
+                    id="blob-movement-selector" 
+                    class="w-full bg-[#0B1120] border border-slate-700 h-9 rounded-lg px-3 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="float">Organic Floating (Slight Drifting Hover)</option>
+                    <option value="orbit">Circular Orbit (Rotates around relative central radius)</option>
+                    <option value="linear">Linear Drifting (Back and forth horizontal slip)</option>
+                    <option value="pulse">Breathing Pulse (Static scaling pulse effect)</option>
+                  </select>
+                </div>
+
+                <!-- Shape variant selector -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Morphing variant shape</label>
+                  <select 
+                    id="blob-shape-selector" 
+                    class="w-full bg-[#0B1120] border border-slate-700 h-9 rounded-lg px-3 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="1">Organic Fluid (Default Spline)</option>
+                    <option value="2">Liquid Blob Splat (Slightly Jagged)</option>
+                    <option value="3">Droplet Core</option>
+                    <option value="4">Starry Amoeba (Fluid Expansion)</option>
+                    <option value="5">Capsule Soft</option>
+                  </select>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Panel 3: Canvas Setup controls -->
+            <div id="view-canvas" class="space-y-5" style="display: none;">
+              
+              <!-- Bg selection -->
+              <div class="space-y-1.5">
+                <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Workspace canvas bg</span>
+                <div class="flex items-center gap-2">
+                  <input id="canvas-bg-color-picker" type="color" class="w-10 h-8 rounded bg-[#0B1120] border border-slate-700 p-0.5 cursor-pointer" />
+                  <span class="text-[11px] font-mono font-bold text-slate-350 opacity-80">Synchronize backing paint layout base color</span>
+                </div>
+              </div>
+
+              <!-- Main Filter adjustments -->
+              <div class="space-y-4 border-t border-slate-700 pt-4">
+                
+                <!-- Fluid Blur Slider -->
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Canvas blur force</span>
+                    <span id="lbl-canvas-blur" class="font-mono text-xs text-indigo-400 font-bold">80px</span>
+                  </div>
+                  <input id="canvas-blur-slider" type="range" min="0" max="180" value="80" class="w-full accent-indigo-500 cursor-pointer" />
+                </div>
+
+                <!-- Contrast boost -->
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Fluid contrast merge</span>
+                    <span id="lbl-canvas-contrast" class="font-mono text-xs text-indigo-400 font-bold">125%</span>
+                  </div>
+                  <input id="canvas-contrast-slider" type="range" min="50" max="250" value="125" class="w-full accent-indigo-500 cursor-pointer" />
+                </div>
+
+                <!-- Saturation boost -->
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Color saturation</span>
+                    <span id="lbl-canvas-sat" class="font-mono text-xs text-indigo-400 font-bold">140%</span>
+                  </div>
+                  <input id="canvas-sat-slider" type="range" min="50" max="250" value="140" class="w-full accent-indigo-500 cursor-pointer" />
+                </div>
+
+                <!-- Blend option selector -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Mix blending layer strategy</label>
+                  <select 
+                    id="canvas-blend-selector" 
+                    class="w-full bg-[#0B1120] border border-slate-700 h-9 rounded-lg px-3 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="normal">Normal (Layered)</option>
+                    <option value="screen" selected>Screen (Glow Fusion - Recommended)</option>
+                    <option value="overlay">Overlay (Contrast Blend)</option>
+                    <option value="multiply">Multiply (Dark Fusion)</option>
+                    <option value="color-dodge">Color Dodge (Electric Glow)</option>
+                    <option value="color-burn">Color Burn (Vintage Burn)</option>
+                    <option value="difference">Difference (Inversions)</option>
+                    <option value="exclusion">Exclusion</option>
+                    <option value="soft-light">Soft Light (Ambient)</option>
+                    <option value="saturation">Saturation Boost</option>
+                  </select>
+                </div>
+
+                <!-- ASPECT RATIOS -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Aspect ratio mask</label>
+                  <select 
+                    id="canvas-ratio-selector" 
+                    class="w-full bg-[#0B1120] border border-slate-700 h-9 rounded-lg px-3 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="full">Fullbleed Fluid (100% Canvas Box)</option>
+                    <option value="16-9">Widescreen 16:9 Display Bounds</option>
+                    <option value="4-3">Classic Standard 4:3 Frame</option>
+                    <option value="1-1">Pristine 1:1 Square block</option>
+                  </select>
+                </div>
+
+                <!-- Noise grains switch -->
+                <div class="flex items-center justify-between p-3 bg-[#0B1120]/40 rounded-lg border border-slate-700">
+                  <div class="space-y-0.5">
+                    <span class="text-xs font-semibold text-slate-200 block">Analog Grain Noise Grid</span>
+                    <span class="text-[9px] text-[#94A3B8]">Dope overlay SVG grain layer mask</span>
+                  </div>
+                  <input id="canvas-noise-toggle" type="checkbox" checked class="w-4 h-4 accent-indigo-500 cursor-pointer" />
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Panel 4: Glassmorphic Overlay controls -->
+            <div id="view-glass" class="space-y-5" style="display: none;">
+              
+              <!-- Core Enabled check -->
+              <div class="flex items-center justify-between p-3 bg-[#0B1120]/40 rounded-lg border border-slate-700">
+                <div class="space-y-0.5">
+                  <span class="text-xs font-semibold text-slate-200 block">Glassmorphism card visible</span>
+                  <span class="text-[9px] text-[#94A3B8]">Centered translucent wire mockup overlay</span>
+                </div>
+                <input id="glass-enable-toggle" type="checkbox" class="w-4 h-4 accent-indigo-500 cursor-pointer" />
+              </div>
+
+              <!-- Main settings -->
+              <div class="space-y-4 border-t border-slate-700 pt-4">
+                
+                <!-- Glass Blur slider -->
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Glass back reflection blur</span>
+                    <span id="lbl-glass-blur" class="font-mono text-xs text-indigo-400 font-bold">16px</span>
+                  </div>
+                  <input id="glass-blur-slider" type="range" min="0" max="40" value="16" class="w-full accent-indigo-500 cursor-pointer" />
+                </div>
+
+                <!-- Back opacity -->
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Backplate Opacity glass</span>
+                    <span id="lbl-glass-opacity" class="font-mono text-xs text-indigo-400 font-bold">15%</span>
+                  </div>
+                  <input id="glass-opacity-slider" type="range" min="0" max="100" value="15" class="w-full accent-indigo-500 cursor-pointer" />
+                </div>
+
+                <!-- Border opacity -->
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Rim bevel opacity outline</span>
+                    <span id="lbl-glass-border" class="font-mono text-xs text-indigo-400 font-bold">25%</span>
+                  </div>
+                  <input id="glass-border-slider" type="range" min="0" max="100" value="25" class="w-full accent-indigo-500 cursor-pointer" />
+                </div>
+
+                <!-- Radius -->
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Corner border radius</span>
+                    <span id="lbl-glass-radius" class="font-mono text-xs text-indigo-400 font-bold">24px</span>
+                  </div>
+                  <input id="glass-radius-slider" type="range" min="0" max="50" value="24" class="w-full accent-indigo-500 cursor-pointer" />
+                </div>
+
+                <!-- Color profiles overlay selection -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Glass tint color</label>
+                  <select 
+                    id="glass-color-selector" 
+                    class="w-full bg-[#0B1120] border border-slate-700 h-9 rounded-lg px-3 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="#ffffff">Alabaster White Glow (Premium Gloss)</option>
+                    <option value="#0f172a">Dark Slate Obsidian (Deep Contrast)</option>
+                  </select>
+                </div>
+
+                <!-- Frame Mock template selection -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Interface wireframe archetype</label>
+                  <select 
+                    id="glass-template-selector" 
+                    class="w-full bg-[#0B1120] border border-slate-700 h-9 rounded-lg px-3 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="dashboard" selected>Dashboard Analytics Widgets</option>
+                    <option value="login">Secure Authorization credentials screen</option>
+                    <option value="credit-card">Visa/Mastercard Membership plastic card</option>
+                    <option value="none">Blank Canvas plain bounding box</option>
+                  </select>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Persistent Code Exporter Area dock -->
+        <div id="developer-export-anchor" class="scroll-mt-6">
+          <div class="bg-[#1E293B] border border-slate-700 rounded-xl overflow-hidden shadow-2xl">
+            <div class="border-b border-slate-700 px-5 py-4 flex items-center justify-between bg-[#0B1120]/40">
+              <div class="flex items-center gap-2">
+                <!-- Terminal block -->
+                <svg class="w-4.5 h-4.5 text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></svg>
+                <h3 class="font-display font-semibold text-sm text-slate-100 uppercase tracking-wide">Developer Export Dock</h3>
+              </div>
+              <button
+                id="btn-copy-dock"
+                class="flex items-center gap-2 py-1.5 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20"
+              >
+                <!-- Copy vector -->
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <span>Copy Code Package</span>
+              </button>
+            </div>
+
+            <div class="flex items-center gap-1 border-b border-slate-700 bg-[#0B1120]/60 px-4 py-2">
+              <button
+                id="btn-export-html-css"
+                class="flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all bg-[#1E293B] text-indigo-400 font-bold border border-slate-705"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
+                <span>HTML / CSS Embed</span>
+              </button>
+              <button
+                id="btn-export-tailwind"
+                class="flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all text-slate-400 hover:text-slate-200"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polygon points="2 17 12 22 22 17" /><polygon points="2 12 12 17 22 12" /></svg>
+                <span>Tailwind CSS Config</span>
+              </button>
+              <button
+                id="btn-export-react"
+                class="flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all text-slate-400 hover:text-slate-250"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" /></svg>
+                <span>React Component</span>
+              </button>
+            </div>
+
+            <div class="relative">
+              <pre class="p-4 overflow-x-auto max-h-72 overflow-y-auto font-mono text-xs text-slate-300 leading-relaxed bg-[#0B1120]/85 select-all"><code id="rendered-code-block"></code></pre>
+              <div class="absolute right-3 bottom-3 text-[10px] text-slate-500 pointer-events-none font-mono tracking-wider">
+                UTF-8 Compiled
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Humble System Footer bar -->
+    <footer class="border-t border-slate-800 bg-[#0F172A] text-[10px] text-slate-500 text-center py-5 px-6 mt-8 shrink-0">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 px-2">
+        <div class="flex items-center gap-4 text-slate-400">
+          <span>Status: <span class="text-emerald-400 font-bold uppercase tracking-wider">● LIVE PREVIEW INSTANCE</span></span>
+          <span class="text-slate-650">|</span>
+          <span>Engine: <span class="text-indigo-400 font-mono font-bold">blobmaster Core</span></span>
+        </div>
+        <div class="flex gap-4 uppercase font-bold tracking-tight text-[9px] text-[#94A3B8]">
+          <span class="cursor-pointer hover:text-white transition-colors">Documentation</span>
+          <span class="cursor-pointer hover:text-white transition-colors">API Reference</span>
+          <span class="cursor-pointer hover:text-white transition-colors">GitHub Core</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Bootstrap Core JS Engine -->
+    <script src="src/main.js"></script>
+  </body>
+</html>
